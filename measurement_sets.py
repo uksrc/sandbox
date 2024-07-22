@@ -1,37 +1,31 @@
 import casatools
 
 msmd = casatools.msmetadata()
-ms = casatools.ms()
-tb = casatools.table()
-
-
 
 ms_path = "/home/h14471mj/e-merlin/casa6_docker/prod/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms"
 
 
-# initial header extraction funtion, formatting/cleaning not included for now
-def get_local_headers_from_ms(ms_file):
+def summary_metadata(ms_file):
     '''
-    Get list of ms headers from measurement set
-    :param ms_file:
-    :return: list of headers
+    Extract summery of metadata for entire measurement set
+    :param ms_file: input measurement set location
+    :return: Dictionary of metadata descrbing:['begin time', 'data descriptions', 'end time', 'fields', 'nrows',
+     'polarizations', 'spectral windows']
     '''
-    tb.open(ms_file)
-    colnames = tb.colnames()
-    tb.close()
-    return colnames
 
-def get_headers_from_ms_kvp(ms_file):
-    '''
-    Get key:value pairs in dictionary for headers in a measurement set.
-    :param ms_file: measurement set name
-    :return: Dictionary of key-value pairs header names: values
-    '''
-    col_names = get_local_headers_from_ms(ms_file)
-    ms.open(ms_file)
-    query = ms.getdata(col_names)
-    ms.selectinit(reset=True)
-    ms.close()
-    return query
+    msmd.open(ms_path)
+    sum_dict = msmd.summary()
+    sum_keys = sum_dict.keys()
+    msmd.done()
+
+    del_for_now = [key for key in sum_keys if 'observationID' in key]
+    for key in del_for_now:
+        del sum_dict[key]
+
+    # removing field specific metadata for now, include later
+    # Current test dataset for observationID data has structure ['observationID=0']['arrayID=0']['scan=1']['fieldID=3'],
+    # followed by 'antennas', 'begin time', 'data description IDs', 'end time', 'nrows', 'state IDs', and ~600 fields,
+    # each with ['data description IDs', 'nrows', 'time']
+    return sum_dict
 
 
