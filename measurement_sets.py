@@ -15,7 +15,7 @@ def summary_metadata(ms_path):
      'polarizations', 'spectral windows']
     '''
 
-    msmd.open(ms_path)
+    msmd.open(ms_file)
     sum_dict = msmd.summary()
     sum_keys = sum_dict.keys()
     msmd.done()
