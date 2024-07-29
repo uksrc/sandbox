@@ -30,7 +30,10 @@ print("End freq:",freq_end)
 print("Channel width:",chan_res)
 print("Num Chans:",nchan)
 
+# Test using table.getcol to extract the project id, obsid.  also could extract this from file path or file name.  
 
+project_id = eMERLIN_metadata_extract.get_proj_id(data_path)
+print("Project ID ",project_id)
 
 # Test and print getting source names
 

@@ -8,10 +8,17 @@
 import casatools
 import numpy
 
+tb = casatools.table()
 msmd = casatools.msmetadata()
 
 #ms_path = "dataRedution/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms"
 
+def get_proj_id(ms_file):
+    # Get the 'project' code which should be what we call obsid?  Check with Paul?
+    tb.open(ms_file+'/OBSERVATION')
+    project_id = tb.getcol('PROJECT')
+    tb.close()
+    return project_id[0]
 
 def find_mssources(ms_file):
     # Get list of sources from measurement set
