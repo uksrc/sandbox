@@ -7,6 +7,7 @@
 
 import casatools
 import numpy
+import pytest
 
 tb = casatools.table()
 msmd = casatools.msmetadata()
@@ -19,6 +20,26 @@ def get_proj_id(ms_file):
     project_id = tb.getcol('PROJECT')
     tb.close()
     return project_id[0]
+
+#def test_get_proj_id():
+#    assert get_proj_id(dataRedution/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms) == 'TS8005' 
+
+
+def get_release_date(ms_file):
+    # Try to get public data date from metadata.
+    # Cannot make sense of this yet... not julian but not sure what it is!
+    tb.open(ms_file+'/OBSERVATION')
+    release_date = tb.getcol('RELEASE_DATE')
+    tb.close()
+    return release_date[0]
+
+def testing_tables(ms_file):
+    # Get description of cols/headers, hopefully.
+    # 
+    tb.open(ms_file+'/OBSERVATION')
+    table_dict = tb.getdesc()
+    tb.close()
+    return table_dict
 
 def find_mssources(ms_file):
     # Get list of sources from measurement set
@@ -57,6 +78,22 @@ def get_obsfreq(ms_file):
     nchan = len(msmd.chanwidths(0))
     msmd.done()
     return freq_ini, freq_end, chan_res, nchan
+
+def freq2wl(freq):
+    # Convert frequency (Hz) to wavelength (m)
+    sol = 299792458
+    wl = sol/freq
+    return wl
+
+def energy_bounds(ms_file):
+    # Return energy bounds in wavelength (m)
+    msmd.open(ms_file)
+    nspw = msmd.nspw()
+    freq_ini = msmd.chanfreqs(0)[0]
+    freq_end = msmd.chanfreqs(nspw-1)[-1]
+    wl_upper = freq2wl(freq_ini) 
+    wl_lower = freq2wl(freq_end)
+    return wl_upper, wl_lower 
 
 def get_bandpass(ms_file):
     # Returns eMERLIN name for bandpass CAOM Energy.bandpassName

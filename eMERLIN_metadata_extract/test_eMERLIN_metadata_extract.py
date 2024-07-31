@@ -30,6 +30,13 @@ print("End freq:",freq_end)
 print("Channel width:",chan_res)
 print("Num Chans:",nchan)
 
+# Test energy_bounds, converts to wavelength as per the data model requirements.
+# Gets upper and lower energy bounds for this observation.
+# Test energy bounds Hz to m
+energy_bounds_up, energy_bounds_low = emd.energy_bounds(data_path)
+print('energy range(m):',energy_bounds_low,'-',energy_bounds_up)
+
+
 # Test using table.getcol to extract the project id, obsid.  also could extract this from file path or file name.  
 
 project_id = eMERLIN_metadata_extract.get_proj_id(data_path)
