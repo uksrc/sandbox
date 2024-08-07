@@ -58,3 +58,7 @@ print(antlist)
  
 band_name = eMERLIN_metadata_extract.get_bandpass(data_path)
 print(band_name)
+
+temp_pol_state, dim = emd.get_polarization(data_path)
+print(temp_pol_state)
+print(dim)

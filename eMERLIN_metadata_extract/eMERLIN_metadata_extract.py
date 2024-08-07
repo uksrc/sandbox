@@ -48,8 +48,14 @@ def find_mssources(ms_file):
     mssources = ','.join(numpy.sort(msmd.fieldnames()))
     #mssources = msmd.fieldnames()
     msmd.done()
-    # logger.debug('Sources in MS {0}: {1}'.format(msfile, mssources))
     return mssources
+
+def find_target(ms_file):
+    # Try to find which source has which purpose.
+    tb.open(ms_file+'/FIELD')
+    source_type = tb.getcol('NAME')
+    tb.close()
+    return source_type
 
 def get_antennas(ms_file):
     # Returns Antenna names list included in interferometer for this obs
@@ -65,7 +71,6 @@ def get_antennas(ms_file):
 
 # At the minute, this isn't fully giving expected results.
 # To do: read more info into a better data structure with this nspw call.
-# To do: convert units to wavelength from frequency for standard.
 
 def get_obsfreq(ms_file):
     # Returns freq of first channel, end chan, channel resolution
@@ -112,4 +117,13 @@ def get_bandpass(ms_file):
         print('Cannot determine band from frequency')
         band = 'Null' 
     return band
-    
+   
+def get_polarization(ms_file):
+# Duplicated from eMERLIN_CASA_pipeline/functions/eMCP_functions.py
+# Updated to return CAOM format and receptor count instead of eMERLIN weblog format..  
+    tb.open(ms_file+'/FEED')
+    polarization = tb.getcol('POLARIZATION_TYPE')
+    pol_dim = tb.getcol('NUM_RECEPTORS')[0]
+    tb.close()
+    return "PolarizationState."+''.join(polarization[:,0]), pol_dim
+
