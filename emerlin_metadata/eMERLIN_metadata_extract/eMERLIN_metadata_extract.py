@@ -5,9 +5,8 @@
 # the msmetadata.open calls and extract metadata into structures that
 # are most meaningful for the CAOM tables.  
 
-import casatools
+from casatools import msmetadata, table
 import numpy
-import pytest
 
 tb = casatools.table()
 msmd = casatools.msmetadata()

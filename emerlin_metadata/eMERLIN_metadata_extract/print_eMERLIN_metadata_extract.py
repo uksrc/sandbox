@@ -1,34 +1,33 @@
-# Correct tests can/will be written here,
-# Just need to get to learning to use pytest!
-
+# Tests eMERLIN_metadata_extract functions.
 
 
 import pytest
 import casatools
-import eMERLIN_metadata_extract 
+from eMERLIN_metadata_extract import * 
 import sys
 
 msmd = casatools.msmetadata()
 emd = eMERLIN_metadata_extract
 
-#data_path = "dataReduction/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms"
-data_path = sys.argv[1]
-print("Path:", data_path)
+data_path = "dataReduction/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms"
+#data_path = sys.argv[1]
+#print("Path:", data_path)
 
 # Test Observing frequency, channel resolution, number of channels
 # Expected: 4 obs freq: 
 #	    Channel width/res: 1000 
 #	    Channels: 128000
 #
-# At the minute, this isn't fully giving expected results.
 # To do: read more info into a better data structure with this nspw call.
-# To do: convert units to wavelength from frequency for standard. 
     
-freq_ini, freq_end, chan_res, nchan = eMERLIN_metadata_extract.get_obsfreq(data_path)
-print("Initial freq:",freq_ini)
-print("End freq:",freq_end)
-print("Channel width:",chan_res)
-print("Num Chans:",nchan)
+def test_emd.get_obsfreq()
+    freq_ini, freq_end, chan_res, nchan = eMERLIN_metadata_extract.get_obsfreq(data_path)
+    assert freq_ini, freq_end, chan_res, nchan == 4.8165, 5.3275, 0.001, 128
+
+#print("Initial freq:",freq_ini)
+#print("End freq:",freq_end)
+#print("Channel width:",chan_res)
+#print("Num Chans:",nchan)
 
 # Test energy_bounds, converts to wavelength as per the data model requirements.
 # Gets upper and lower energy bounds for this observation.
