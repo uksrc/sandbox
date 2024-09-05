@@ -7,12 +7,76 @@
 
 import casatools
 import numpy
-import pytest
 
 tb = casatools.table()
 msmd = casatools.msmetadata()
 
 #ms_path = "dataRedution/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms"
+
+# Try to reduce to one open and close for each casatools operation.
+def msmd_collect(ms_file):
+    """
+    Consolidate opening measurement set to one function
+    :param ms_file: Input measurement set
+    :returns msmd_elements: data structure dictionary of relevant metadata
+    """
+
+    msmd.open(ms_file)
+    nspw = msmd.nspw()
+    msmd_elements = {
+        'mssources': msmd.fieldnames(),
+        'tel_name': msmd.observatorynames(),
+        'antennas': msmd.antennanames(),
+        'wl_upper': msmd.chanfreqs(0)[0],
+        'wl_lower': msmd.chanfreqs(nspw-1)[-1],
+        'chan_res': msmd.chanwidths(0)[0],
+        'nchan': len(msmd.chanwidths(0)),
+    }
+    msmd.close()
+
+    # Dictionary of changes
+    elements_convert = {
+        'wl_upper': freq2wl(msmd_elements['wl_upper']),
+        'wl_lower': freq2wl(msmd_elements['wl_lower']),
+        'chan_res': msmd_elements['chan_res']/1e9,
+        'bp_name': emerlin_band(msmd_elements['wl_upper'])
+    }
+
+    # Update dictionary with converted values and additions.
+    msmd_elements.update(elements_convert)
+
+    return msmd_elements
+
+"""
+casa_2_caom = {
+    'mssources': casa_shiz['mssources'],
+    'tel_name': casa_shiz['tel_name'],
+    'antennas': casa_shiz['antennas'],
+    'wl_upper': freq2wl(casa_shiz['freq_ini']),
+    'wl_lower': freq2wl(casa_shiz['freq_end']),
+    'chan_res': casa_shiz['chan_res']/1e9,
+    'nchan': casa_shiz['nchan'],
+    'bp_name': emerlin_band(casa_shiz['freq_ini']),
+    #'polar_dim': casa_shiz['pol_dim']
+    }
+"""     
+def emerlin_band(freq):
+    """
+    Determine eMERLIN band name from frequency
+    :param freq: Frequency in Hz
+    :return band_name: string
+    """
+    freq = freq/1e9
+    if (freq > 1.2) and (freq < 1.7):
+        band = 'L'
+    elif (freq > 4) and (freq < 8):
+        band = 'C'
+    elif (freq > 17) and (freq < 26):
+        band = 'K'
+    else:
+        print('Cannot determine band from frequency')
+        band = 'Null'
+    return band
 
 def get_proj_id(ms_file):
     # Get the 'project' code which should be what we call obsid?  Check with Paul?
@@ -36,10 +100,18 @@ def get_release_date(ms_file):
 def testing_tables(ms_file):
     # Get description of cols/headers, hopefully.
     # 
-    tb.open(ms_file+'/OBSERVATION')
-    table_dict = tb.getdesc()
+    tb.open(ms_file+'/HISTORY')
+    table_dict = tb.row('MESSAGE')[:25]
     tb.close()
     return table_dict
+
+def state(ms_file):
+    # Check obs_mode result in ms
+    tb.open(ms_file+'/STATE')
+    obs_mode = tb.getcol('OBS_MODE')
+    cal_info = tb.getcol('CAL')
+    tb.close()
+    return obs_mode, cal_info
 
 def find_mssources(ms_file):
     # Get list of sources from measurement set
@@ -51,11 +123,26 @@ def find_mssources(ms_file):
     return mssources
 
 def find_target(ms_file):
-    # Try to find which source has which purpose.
+    # Try to find which source has which purpose. Source table, source ID don't exist. Ref_dir and phase_dir are same.
     tb.open(ms_file+'/FIELD')
-    source_type = tb.getcol('NAME')
+    source_name = tb.getcol('NAME')
+    source_type = tb.getcol('CODE')
+    source_ph_dir = tb.getcol('PHASE_DIR')
     tb.close()
-    return source_type
+    return source_name, source_type, source_ph_dir 
+
+#def vhead_directions(ms_file):
+    # Comment out for now as vishead not part of casatools! casatasks.
+    #source_directions = OrderedDict()
+ #   msmd.open(ms_file)
+ #   field_names = msmd.namesforfields()
+ #   msmd.done()
+    #for field_id, field_name in enumerate(field_names)
+ #   vhead = vishead(ms_file, mode = 'list', listitems = 'ptcs')
+        #ra_float = vhead['ptcs'][0]['r'+str(field_id+1)][0][0][0]*180./np.pi
+	#de_float = de_float = vhead['ptcs'][0]['r'+str(field_id+1)][1][0][0]*180./np.pi
+	#directions[field_name] = 
+ #   return vhead
 
 def get_antennas(ms_file):
     # Returns Antenna names list included in interferometer for this obs
@@ -69,7 +156,6 @@ def get_antennas(ms_file):
     return antennas
 
 
-# At the minute, this isn't fully giving expected results.
 # To do: read more info into a better data structure with this nspw call.
 
 def get_obsfreq(ms_file):
@@ -120,10 +206,12 @@ def get_bandpass(ms_file):
    
 def get_polarization(ms_file):
 # Duplicated from eMERLIN_CASA_pipeline/functions/eMCP_functions.py
+# Polarization Table is empty, if I recall correctly.
 # Updated to return CAOM format and receptor count instead of eMERLIN weblog format..  
     tb.open(ms_file+'/FEED')
     polarization = tb.getcol('POLARIZATION_TYPE')
     pol_dim = tb.getcol('NUM_RECEPTORS')[0]
     tb.close()
     return "PolarizationState."+''.join(polarization[:,0]), pol_dim
+
 
