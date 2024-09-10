@@ -7,9 +7,11 @@
 
 import casatools
 import numpy
+import datetime
 
 tb = casatools.table()
 msmd = casatools.msmetadata()
+ms = casatools.ms()
 
 #ms_path = "dataRedution/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms"
 
@@ -47,19 +49,6 @@ def msmd_collect(ms_file):
 
     return msmd_elements
 
-"""
-casa_2_caom = {
-    'mssources': casa_shiz['mssources'],
-    'tel_name': casa_shiz['tel_name'],
-    'antennas': casa_shiz['antennas'],
-    'wl_upper': freq2wl(casa_shiz['freq_ini']),
-    'wl_lower': freq2wl(casa_shiz['freq_end']),
-    'chan_res': casa_shiz['chan_res']/1e9,
-    'nchan': casa_shiz['nchan'],
-    'bp_name': emerlin_band(casa_shiz['freq_ini']),
-    #'polar_dim': casa_shiz['pol_dim']
-    }
-"""     
 def emerlin_band(freq):
     """
     Determine eMERLIN band name from frequency
@@ -78,6 +67,21 @@ def emerlin_band(freq):
         band = 'Null'
     return band
 
+def mjdtodate(mjd):
+    # Stolen from eMCP_functions.py for date conversion.
+    origin = datetime.datetime(1858,11,17)
+    date = origin + datetime.timedelta(mjd)
+    return date
+
+def get_obstime(ms_file):
+    # returns datetime object of first and last times in obs_id 0
+    ms.open(ms_file)
+    t = ms.getdata('TIME')['time']
+    t_ini = mjdtodate(numpy.min(t)/60./60./24.)
+    t_end = mjdtodate(numpy.max(t)/60./60./24.)
+    ms.close()
+    return t_ini, t_end
+
 def get_proj_id(ms_file):
     # Get the 'project' code which should be what we call obsid?  Check with Paul?
     tb.open(ms_file+'/OBSERVATION')
@@ -94,8 +98,9 @@ def get_release_date(ms_file):
     # Cannot make sense of this yet... not julian but not sure what it is!
     tb.open(ms_file+'/OBSERVATION')
     release_date = tb.getcol('RELEASE_DATE')
+    rel_date = mjdtodate(release_date[0])
     tb.close()
-    return release_date[0]
+    return rel_date
 
 def testing_tables(ms_file):
     # Get description of cols/headers, hopefully.
@@ -106,7 +111,7 @@ def testing_tables(ms_file):
     return table_dict
 
 def state(ms_file):
-    # Check obs_mode result in ms
+    # Check obs_mode result in ms.
     tb.open(ms_file+'/STATE')
     obs_mode = tb.getcol('OBS_MODE')
     cal_info = tb.getcol('CAL')
@@ -131,19 +136,6 @@ def find_target(ms_file):
     tb.close()
     return source_name, source_type, source_ph_dir 
 
-#def vhead_directions(ms_file):
-    # Comment out for now as vishead not part of casatools! casatasks.
-    #source_directions = OrderedDict()
- #   msmd.open(ms_file)
- #   field_names = msmd.namesforfields()
- #   msmd.done()
-    #for field_id, field_name in enumerate(field_names)
- #   vhead = vishead(ms_file, mode = 'list', listitems = 'ptcs')
-        #ra_float = vhead['ptcs'][0]['r'+str(field_id+1)][0][0][0]*180./np.pi
-	#de_float = de_float = vhead['ptcs'][0]['r'+str(field_id+1)][1][0][0]*180./np.pi
-	#directions[field_name] = 
- #   return vhead
-
 def get_antennas(ms_file):
     # Returns Antenna names list included in interferometer for this obs
     # To do: place each in CAOM Observation.telescopeKeyword 
@@ -155,6 +147,28 @@ def get_antennas(ms_file):
     # logger.debug('Antennas in MS {0}: {1}'.format(msfile, antennas))
     return antennas
 
+def get_ref_ant(ms_file, antennas):
+    '''
+    If Lovell is in array, use Lovell position.  Else use MarkII. \
+    Else this is probably not an 'Imaging Mode' Observation.
+    :params: measurement set, list of antennas in array
+    :return: geolocation for either Lovell or MarkII.
+    ''' 
+    msmd.open(ms_file)
+    if "Lo" in antennas:
+        geo = msmd.antennaposition("Lo")
+    elif "Mk2" in antennas: 
+        geo = msmd.antennaposition("Mk2")
+    else:
+        msmd.close()
+        return()	
+    msmd.close()
+    geoloc = {
+        "X": geo["m0"]["value"],
+        "Y": geo["m1"]["value"],
+        "Z": geo["m2"]["value"]
+    }    
+    return geoloc 
 
 # To do: read more info into a better data structure with this nspw call.
 
