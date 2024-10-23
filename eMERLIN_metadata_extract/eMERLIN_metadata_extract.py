@@ -124,7 +124,7 @@ def get_release_date(ms_file):
     # Commented out conversion to 'normal' datetime. 
     tb.open(ms_file+'/OBSERVATION')
     rel_date = tb.getcol('RELEASE_DATE')
-    # rel_date = mjdtodate(rel_date[0]/60./60./24)
+    rel_date = mjdtodate(rel_date[0]/60./60./24)
     tb.close()
     return rel_date
 

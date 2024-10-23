@@ -1,5 +1,7 @@
 # Check for empty measurement set tables so we know to skip them.
-# Return tables that have rows?
+# Return tables that have rows but aren't data
+# Accepts the measurement set avg.ms as a commandline argument:
+# Example:  % python3 check_ms_tables.py ~/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms
 
 import sys
 import os
@@ -15,7 +17,7 @@ ms_dir = sys.argv[1]
 
 ms_dirs = glob.glob(ms_dir+"/*")
 
-#print("Number of tables in ms:", len(ms_dirs))
+print("Number of tables in ms:", len(ms_dirs))
 
 def reduce_table_list(ms_dirs):
     tables = [] 

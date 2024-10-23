@@ -63,6 +63,7 @@ print("Path:", data_path)
 
 rel_date = emd.get_release_date(data_path)
 print(rel_date)
+print(type(rel_date))
 
 # Get antenna names.  Expect Mk2, Pi, Da, Kn, De, Cm.
 
@@ -89,7 +90,7 @@ print(dim)
 #print(hist_row)
 
 #print("Test consolidated structure:")
-casa_elements_dict = emd.msmd_collect(data_path)
-print(casa_elements_dict)
+#casa_elements_dict = emd.msmd_collect(data_path)
+#print(casa_elements_dict)
 #all_scans = emd.get_scan_sum(data_path)
 #print(len(all_scans))
