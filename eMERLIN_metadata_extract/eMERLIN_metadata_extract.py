@@ -31,23 +31,47 @@ def msmd_collect(ms_file):
         'antennas': msmd.antennanames(),
         'wl_upper': msmd.chanfreqs(0)[0],
         'wl_lower': msmd.chanfreqs(nspw-1)[-1],
-        'chan_res': msmd.chanwidths(0)[0],
+        'chan_width': msmd.chanwidths(0)[0],
         'nchan': len(msmd.chanwidths(0)),
     }
+
+    nice_order = ['Lo', 'Mk2', 'Pi', 'Da', 'Kn', 'De', 'Cm']
+    refant = [a for a in nice_order if a in msmd_elements['antennas']]
+    geo = msmd.antennaposition(refant[0])
     msmd.close()
 
     # Dictionary of changes
     elements_convert = {
         'wl_upper': freq2wl(msmd_elements['wl_upper']),
         'wl_lower': freq2wl(msmd_elements['wl_lower']),
-        'chan_res': msmd_elements['chan_res']/1e9,
-        'bp_name': emerlin_band(msmd_elements['wl_upper'])
+        'chan_width': msmd_elements['chan_width']/1e9,
+        'bp_name': emerlin_band(msmd_elements['wl_upper']),
+        'geoloc_x': geo["m0"]["value"],
+        'geoloc_y': geo["m1"]["value"],
+        'geoloc_z': geo["m2"]["value"]
     }
 
     # Update dictionary with converted values and additions.
     msmd_elements.update(elements_convert)
 
     return msmd_elements
+
+def ms_other_collect(ms_file):
+    """
+    Consolidate non-msmd-type opens to a second dictionary?
+    param ms_file: Input measurement set
+    returns ms_other_elements: dictionary of non-msmd-retrievable elements \
+                               which need various table/col combinations. 
+    """
+
+    ms_other_elements = {
+        'data_release': get_release_date(ms_file),
+        'obs_start_time': get_obstime(ms_file)[0],
+        'obs_stop_time': get_obstime(ms_file)[1],
+        'polar_dim': get_polar(ms_file)[2]
+    }
+
+    return ms_other_elements
 
 def emerlin_band(freq):
     """
@@ -73,12 +97,16 @@ def mjdtodate(mjd):
     date = origin + datetime.timedelta(mjd)
     return date
 
+# ADD THIS
 def get_obstime(ms_file):
     # returns datetime object of first and last times in obs_id 0
+    # DONT convert to datetime! caom wants DOUBLE for datatype. 
     ms.open(ms_file)
     t = ms.getdata('TIME')['time']
-    t_ini = mjdtodate(numpy.min(t)/60./60./24.)
-    t_end = mjdtodate(numpy.max(t)/60./60./24.)
+    t_ini = numpy.min(t)
+    t_end = numpy.max(t)
+    #t_ini = mjdtodate(numpy.min(t)/60./60./24)
+    #t_end = mjdtodate(numpy.max(t)/60./60./24)
     ms.close()
     return t_ini, t_end
 
@@ -89,16 +117,14 @@ def get_proj_id(ms_file):
     tb.close()
     return project_id[0]
 
-#def test_get_proj_id():
-#    assert get_proj_id(dataRedution/TS8004_C_001_20190801/TS8004_C_001_20190801_avg.ms) == 'TS8005' 
 
-
+# ADD THIS
 def get_release_date(ms_file):
-    # Try to get public data date from metadata.
-    # Cannot make sense of this yet... not julian but not sure what it is!
+    # in mjd seconds... which is what caom wants.  
+    # Commented out conversion to 'normal' datetime. 
     tb.open(ms_file+'/OBSERVATION')
-    release_date = tb.getcol('RELEASE_DATE')
-    rel_date = mjdtodate(release_date[0])
+    rel_date = tb.getcol('RELEASE_DATE')
+    # rel_date = mjdtodate(rel_date[0]/60./60./24)
     tb.close()
     return rel_date
 
@@ -106,7 +132,7 @@ def testing_tables(ms_file):
     # Get description of cols/headers, hopefully.
     # 
     tb.open(ms_file+'/HISTORY')
-    table_dict = tb.row('MESSAGE')[:25]
+    table_dict = tb.row('MESSAGE')[1150:1200]
     tb.close()
     return table_dict
 
@@ -127,12 +153,17 @@ def find_mssources(ms_file):
     msmd.done()
     return mssources
 
+def get_hist(ms_file):
+    tb.open(ms_file+'/HISTORY')
+    hist = tb.getcol('MESSAGE')
+    tb.close()
+
 def find_target(ms_file):
     # Try to find which source has which purpose. Source table, source ID don't exist. Ref_dir and phase_dir are same.
     tb.open(ms_file+'/FIELD')
     source_name = tb.getcol('NAME')
     source_type = tb.getcol('CODE')
-    source_ph_dir = tb.getcol('PHASE_DIR')
+    source_ph_dir = tb.getcol('REFERENCE_DIR')
     tb.close()
     return source_name, source_type, source_ph_dir 
 
@@ -142,33 +173,26 @@ def get_antennas(ms_file):
     msmd.open(ms_file)
     antennas = msmd.antennanames()
     msmd.close()
-    # nice_order = ['Lo', 'Mk2', 'Pi', 'Da', 'Kn', 'De', 'Cm']
-    # antennas = [a for a in nice_order if a in antennas]
-    # logger.debug('Antennas in MS {0}: {1}'.format(msfile, antennas))
+    #nice_order = ['Lo', 'Mk2', 'Pi', 'Da', 'Kn', 'De', 'Cm']
+    #antennas = [a for a in nice_order if a in antennas]
     return antennas
 
-def get_ref_ant(ms_file, antennas):
+def ref_ant_geo(ms_file, antennas):
     '''
-    If Lovell is in array, use Lovell position.  Else use MarkII. \
-    Else this is probably not an 'Imaging Mode' Observation.
+    Based on correlator reference order, choose geoloc of first antenna \
+    in the eMERLIN 'nice_order' list. 
     :params: measurement set, list of antennas in array
-    :return: geolocation for either Lovell or MarkII.
+    :return: geolocation for first antenna in array.
     ''' 
+    nice_order = ['Lo', 'Mk2', 'Pi', 'Da', 'Kn', 'De', 'Cm']
+    antennas = [a for a in nice_order if a in antennas]
     msmd.open(ms_file)
-    if "Lo" in antennas:
-        geo = msmd.antennaposition("Lo")
-    elif "Mk2" in antennas: 
-        geo = msmd.antennaposition("Mk2")
-    else:
-        msmd.close()
-        return()	
+    geo = msmd.antennaposition(antennas[0])
     msmd.close()
-    geoloc = {
-        "X": geo["m0"]["value"],
-        "Y": geo["m1"]["value"],
-        "Z": geo["m2"]["value"]
-    }    
-    return geoloc 
+    geoloc_x = geo["m0"]["value"]
+    geoloc_y = geo["m1"]["value"]
+    geoloc_z = geo["m2"]["value"]
+    return geoloc_x, geoloc_y, geoloc_z 
 
 # To do: read more info into a better data structure with this nspw call.
 
@@ -224,8 +248,7 @@ def get_polarization(ms_file):
 # Updated to return CAOM format and receptor count instead of eMERLIN weblog format..  
     tb.open(ms_file+'/FEED')
     polarization = tb.getcol('POLARIZATION_TYPE')
-    pol_dim = tb.getcol('NUM_RECEPTORS')[0]
+    pol_dim = tb.getcol('NUM_RECEPTORS')[0:]
     tb.close()
     return "PolarizationState."+''.join(polarization[:,0]), pol_dim
-
 

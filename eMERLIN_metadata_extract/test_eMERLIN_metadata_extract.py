@@ -50,26 +50,27 @@ print("Path:", data_path)
 
 # Figure out which source is the primary target, and which are cals.
 
-#source_name, source_type, source_ph_dir = emd.find_target(data_path)
+#source_name, source_type, source_ref_dir = emd.find_target(data_path)
 #print(source_name)
 #print(source_type)
-#print(source_ph_dir)
+#print(source_ref_dir)
 
+# ADD ME
 # Test start/end times of observation
-start_time, end_time = emd.get_obstime(data_path)
-print(start_time)
-print(end_time)
+#start_time, end_time = emd.get_obstime(data_path)
+#print(start_time)
+#print(end_time)
 
-#rel_date = emd.get_release_date(data_path)
-#print(rel_date)
+rel_date = emd.get_release_date(data_path)
+print(rel_date)
 
-# Get antenna names.  Expect Mk2, Kn, De, Pi, Da, Cm.
+# Get antenna names.  Expect Mk2, Pi, Da, Kn, De, Cm.
 
-antlist = eMERLIN_metadata_extract.get_antennas(data_path)
-print(antlist)
+#antlist = eMERLIN_metadata_extract.get_antennas(data_path)
+#print(antlist)
 
-ant_geo = emd.get_ref_ant(data_path, antlist)
-print(ant_geo)
+#ant_geo = emd.get_ref_ant(data_path, antlist)
+#print(ant_geo)
 
 # Get eMERLIN bp name.  Expect Band CC
 # To do: Test Null result, cannot fetch band region.
@@ -77,9 +78,9 @@ print(ant_geo)
 #band_name = eMERLIN_metadata_extract.get_bandpass(data_path)
 #print(band_name)
 
-#temp_pol_state, dim = emd.get_polarization(data_path)
-#print(temp_pol_state)
-#print(dim)
+temp_pol_state, dim = emd.get_polarization(data_path)
+print(temp_pol_state)
+print(dim)
 
 #mode, cal = emd.state(data_path)
 #print(mode, cal)
@@ -88,5 +89,7 @@ print(ant_geo)
 #print(hist_row)
 
 #print("Test consolidated structure:")
-#casa_elements_dict = emd.msmd_collect(data_path)
-#print(casa_elements_dict)
+casa_elements_dict = emd.msmd_collect(data_path)
+print(casa_elements_dict)
+#all_scans = emd.get_scan_sum(data_path)
+#print(len(all_scans))
